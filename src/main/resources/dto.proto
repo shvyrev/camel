@@ -1,0 +1,11 @@
+package protobuf;
+
+option java_package = "com.example.demo.model.dto";
+option java_outer_classname = "Dto";
+
+message SessionDto {
+  required string id = 1;
+  required int64 gettingAt = 2;
+  required int64 sendingAt = 3;
+  required string ipAddress = 4;
+}

@@ -1,0 +1,61 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.2.9-SNAPSHOT'
+	id 'io.spring.dependency-management' version '1.1.6'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.apache.camel.springboot:camel-spring-boot-bom:4.6.0"
+	}
+}
+repositories {
+	mavenCentral()
+	maven { url 'https://repo.spring.io/snapshot' }
+	maven { url "https://packages.confluent.io/maven/" }
+}
+
+dependencies {
+	implementation "org.springframework.boot:spring-boot-starter-web"
+	implementation "org.springframework.boot:spring-boot-starter-actuator"
+	implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+	implementation 'org.apache.camel.springboot:camel-spring-boot-starter:4.6.0'
+	implementation 'org.apache.camel.springboot:camel-servlet-starter:4.6.0'
+	implementation 'org.apache.camel.springboot:camel-jackson-starter:4.6.0'
+//	implementation 'org.apache.camel.springboot:camel-swagger-java-starter:4.6.0'
+	implementation 'org.apache.camel.springboot:camel-springdoc-starter:4.6.0'
+	implementation 'org.apache.camel.springboot:camel-management-starter:4.6.0'
+	implementation 'org.apache.camel.springboot:camel-jpa-starter:4.6.0'
+	implementation 'org.apache.camel.springboot:camel-kafka-starter:4.6.0'
+	implementation 'org.apache.camel.springboot:camel-jackson-protobuf-starter:4.6.0'
+	implementation 'org.apache.camel.springboot:camel-protobuf-starter:4.6.0'
+	implementation 'com.google.protobuf:protobuf-java:4.27.3'
+	implementation 'io.confluent:kafka-protobuf-serializer:7.7.0'
+//	implementation 'org.apache.camel.springboot:camel-google-protobuf-starter:4.6.0'
+	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.12.5'
+//	implementation 'org.apache.camel.springboot:camel-jdbc:4.6.0'
+//	implementation 'org.apache.camel.springboot:camel-sql:4.6.0'
+	implementation 'org.postgresql:postgresql:42.2.12'
+	runtimeOnly 'org.postgresql:postgresql'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	compileOnly 'org.projectlombok:lombok:1.18.30'
+	annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
+	testCompileOnly 'org.projectlombok:lombok:1.18.30'
+	testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
