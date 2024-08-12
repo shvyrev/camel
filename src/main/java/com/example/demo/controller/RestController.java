@@ -16,6 +16,14 @@ public class RestController extends RouteBuilder {
     @Override
     public void configure() throws Exception {
 
+        onException(Exception.class)
+                .handled(true)
+                .to("bean:exceptionHandler?method=onRestException");
+
+        onException(NoSessionException.class)
+                .handled(true)
+                .to("bean:exceptionHandler?method=onNoSessionException");
+
         restConfiguration()
                 .component("servlet")
                 .bindingMode(RestBindingMode.auto)
@@ -30,14 +38,6 @@ public class RestController extends RouteBuilder {
                 .apiProperty("api.title", "User API")
                 .apiProperty("api.version", "1.0.0");
 
-//        onException(NoSessionException.class)
-////                .handled(true)
-//                .continued(true)
-//                .to("bean:exceptionHandler?method=onNoSessionException");
-//
-//        onException(Exception.class)
-//                .handled(true)
-//                .to("bean:exceptionHandler?method=onRestException");
 
         rest("/request")
                 .post()

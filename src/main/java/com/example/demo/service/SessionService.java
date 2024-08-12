@@ -4,19 +4,12 @@ import com.example.demo.exceptions.NoSessionException;
 import com.example.demo.model.Session;
 import com.example.demo.model.Trains;
 import com.example.demo.model.dto.CreateSessionDto;
-import com.example.demo.model.dto.Dto;
 import com.example.demo.model.dto.SessionDto;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.dataformat.protobuf.ProtobufDataFormat;
-import org.apache.camel.model.dataformat.ProtobufLibrary;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -35,27 +28,24 @@ public class SessionService extends RouteBuilder {
 
         String brokers = "localhost:9092";
         String topic = "sessions";
-        String serializerClass = "io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer";
         String keySerializerClass = "org.apache.kafka.common.serialization.StringSerializer";
-
-        ProtobufDataFormat format = new ProtobufDataFormat(Dto.SessionDto.getDefaultInstance());
+        String serializerClass = "com.example.demo.clients.serde.SessionDtoSerializer";
+        String keyDeserializer = "org.apache.kafka.common.serialization.StringDeserializer";
+        String valueDeserializer = "com.example.demo.clients.serde.SessionDtoDeserializer";
 
         from("direct:createSession")
                 .log(INFO, "Create session", "${body} and ${headers}")
                 .process(this::mapToKafkaMessage)
-                .log(INFO, "dto to kafka", "${body} and ${headers}")
-                .marshal(format)
                 .to("kafka:" + topic + "?"
                         + "keySerializer=" + keySerializerClass + "&"
-                        + "valueSerializer=" + serializerClass + "&"
-                        + "additionalProperties.schema.registry.url=http://localhost:8811")
-                .process(this::toRestResponse)
-        ;
+                        + "valueSerializer=" + serializerClass
+                )
+                .process(this::toRestResponse);
 
-        from("kafka:sessions")
+        from("kafka:" + topic + "?"
+                + "keyDeserializer=" + keyDeserializer + "&"
+                + "valueDeserializer=" + valueDeserializer)
                 .log(INFO, "Session received", "${body} and ${headers}")
-                .unmarshal().protobuf(ProtobufLibrary.GoogleProtobuf, Dto.SessionDto.class)
-//                .unmarshal().json(JsonLibrary.Jackson, SessionDto.class)
                 .process(this::mapToSessionEntity)
                 .log(INFO, "Session saved", "${body} and ${headers}")
                 .to("jpa:com.example.demo.model.Session?persistenceUnit=postgresql&flushOnSend=true");
@@ -75,14 +65,6 @@ public class SessionService extends RouteBuilder {
 
         from("direct:upTrainName")
                 .process(this::upTrainName);
-
-        from("direct:dropStreamRoute")
-//                .to("callOtherService")
-                .log("RESPONSE: ${body}")
-                .process(exchange -> {
-                    InputStream in = exchange.getIn().getBody(InputStream.class);
-                    in.reset();
-                });
     }
     private void getFirstSession(Exchange exchange) {
         List<Session> values= (List<Session>) exchange.getIn().getBody();
@@ -107,7 +89,7 @@ public class SessionService extends RouteBuilder {
     }
 
     private void mapToSessionEntity(Exchange exchange) {
-        var sessionDto = (Dto.SessionDto) exchange.getIn().getBody();
+        var sessionDto = (SessionDto) exchange.getIn().getBody();
 //        SessionDto sessionDto = (SessionDto) exchange.getIn().getBody();
         var session = Session.of(sessionDto);
         exchange.getIn().setBody(session);
@@ -115,14 +97,6 @@ public class SessionService extends RouteBuilder {
 
     private void toRestResponse(Exchange exchange) {
         log.info("$ toRestResponse() called with: exchange = [{}]", exchange.getIn().getHeaders());
-
-        InputStream in = exchange.getIn().getBody(InputStream.class);
-        try {
-            in.reset();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
         exchange.getIn().setBody(exchange.getIn().getHeader("rest-response").toString());
     }
 
@@ -132,16 +106,9 @@ public class SessionService extends RouteBuilder {
         var gettingDate = nowMillis();
         var sendAt = toMillis(dto.time());
         var id = UUID.randomUUID().toString();
-//        SessionDto sessionDto = new SessionDto(id, gettingDate, ipAddress, sendAt);
 
-        exchange.getIn().setHeader("rest-response", id);
-
-        Dto.SessionDto sessionDto = Dto.SessionDto.newBuilder()
-                .setId(id)
-                .setGettingAt(gettingDate)
-                .setIpAddress(ipAddress)
-                .setSendingAt(sendAt)
-                .build();
+        SessionDto sessionDto = new SessionDto(id, gettingDate, ipAddress, sendAt);
         exchange.getIn().setBody(sessionDto);
+        exchange.getIn().setHeader("rest-response", id);
     }
 }
